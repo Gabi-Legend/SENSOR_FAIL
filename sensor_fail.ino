@@ -1,12 +1,15 @@
-#include <DHT.h>
+#include <DHT.h>  //SENSOR LIBRARY
 
 #define DHTPIN 2
 #define DHTTYPE DHT11
-
 DHT dht(DHTPIN, DHTTYPE);
-int LED = 3;
 
+int LED = 3;
 bool lastState = LOW;
+
+//TIMEOUT 
+unsigned long lastGoodRead = 0;  
+const unsigned long timeout = 10000; 
 
 void setup() {
   Serial.begin(9600);
@@ -18,10 +21,16 @@ void loop() {
   float h = dht.readHumidity();
   float t = dht.readTemperature();
   bool currentState;
+  //CHECK IF THE SENSOR IS WORKING PROPERLY
   if (isnan(t) || isnan(h)) {
     Serial.println("DHT11 read error");
-    currentState = LOW;
+    if (millis() - lastGoodRead > timeout) {
+      currentState = LOW; 
+    } else {
+      currentState = lastState; 
+    }
   } else {
+    lastGoodRead = millis();
     currentState = HIGH;
     Serial.print("Temperature: ");
     Serial.print(t);
@@ -29,13 +38,11 @@ void loop() {
     Serial.print(h);
     Serial.println(" %");
   }
-  if(currentState == HIGH && lastState == LOW){
-    digitalWrite(LED, HIGH);
-    lastState = HIGH;
+
+  if(currentState != lastState){
+    digitalWrite(LED, currentState ? HIGH : LOW);
+    lastState = currentState;
   }
-  else if(currentState == LOW && lastState == HIGH){
-    lastState = LOW;
-    digitalWrite(LED, LOW);
-  }
+
   delay(2000); 
 }
